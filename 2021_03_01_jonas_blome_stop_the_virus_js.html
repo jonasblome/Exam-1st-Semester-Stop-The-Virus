@@ -1,0 +1,1073 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Stop the Virus</title>
+		<meta charset="utf8" name="viewport" content="width=device-width, initial-scale=1.0">
+		<style>
+			textarea {
+				width:90vw;
+				display: block;
+				margin-left: auto;
+				margin-right: auto;
+				background-color: black;
+				color: white;
+			}
+			
+			textarea {
+				readonly: true;
+				height: 80vh;
+				resize: none;
+			}
+			
+			p {
+				display: block;
+				margin-left: auto;
+				margin-right: auto;
+			}
+			
+			button, input, span {
+				width: 5vw;
+				height: 2vw;
+				display: block;
+				margin-left: auto;
+				margin-right: auto;
+				background-color: black;
+				color: white;
+			}
+			
+			#backgroundVideo {
+				//margin: 2%;
+				position: fixed;
+				right: 0;
+				bottom: 0;
+				z-index: -1;
+				min-width: 100%;
+				min-height: 100%;
+			}
+			
+			@media only screen and (min-width:500px){
+				textarea {
+					width:50vw;
+				}
+				
+				button, input {
+					width: 10vw;
+				}
+			}
+</style> 
+	</head>
+	<body>
+		<video autoplay muted loop id="backgroundVideo">
+			<source src="Life in life.mp4" type="video/mp4">
+		</video>
+		<textarea id="outputfield" readonly></textarea>
+		<p>
+			<span> input in here please... &gt;</span>
+			<input type="text" id="inputbar">
+			<button id="restartButton">Restart the game!</button>
+		</p>
+		<script>
+			/*
+			 * Environment: This is the general environment of the game. It contains the output field
+			 * and the input bar and all other elements to display the game on the website.
+			 */
+			var game;
+			
+			/*
+			 * Create input and output fields.
+			 */
+			var inputBar = document.getElementById("inputbar");
+			var outputField = document.getElementById("outputfield");
+			var restartButton = document.getElementById("restartButton");
+			restartButton.addEventListener("click", playAgain);
+			outputField.setAttribute('style', 'white-space: pre;');
+			
+			/*
+			 * Print something into the current line.
+			 */
+			function print(content) {
+				outputField.textContent += content;
+				outputField.scrollTop = outputField.scrollHeight;
+			}
+			
+			/*
+			 * Print something into a new output line.
+			 */
+			function println(content) {
+				print("\n" + content);
+			}
+			
+			/*
+			 * Start the game again.
+			 */
+			function playAgain() {
+				game.printGoodbye();
+				inputBar.removeEventListener("keyup", game.checkForInput);
+				game = new Game();
+				game.play();
+			}
+			
+			/*
+			 * Game class: This class is the main class of the "Stop the Virus" application. 
+			 * "Stop the Virus" is a very simple, text based adventure game.  Users 
+			 * can walk around some scenery. That's all. It should really be extended 
+			 * to make it more interesting!
+			 *
+			 * To play this game, create an instance of this class and call the "play"
+			 * method.
+			 * 
+			 * This main class creates and initialises all the others: it creates all
+			 * rooms, creates the parser and starts the game.  It also evaluates and
+			 * executes the commands that the parser returns.
+			 */
+			function Game() {
+				this.parser = new Parser();
+				this.player = new Player(5000);
+				this.currentRoom = null;
+				this.previousRoom = null;
+			}
+			
+			/*
+			 * Create all the rooms and link their exits together.
+			 */
+			Game.prototype.createRooms = function() {
+				// rooms
+				var outside, mainHall, secretary, office, lab, freezer;
+				
+				// npcs
+				var tolga, otto_von, carla, herbert, minori, hadil;
+				
+				// create the rooms
+				outside     = new Room("outside the Robert Koch Institute");
+				mainHall    = new Room("inside the building in the main hall");
+				secretary   = new Room("in the secretary's office");
+				lab         = new Room("in the vaccine laboratory");
+				office      = new Room("in Prof. Drosten's office");
+				freezer     = new Room("in the freezer");
+				
+				// create NPCs and their answers
+				tolga = new NonPlayerCharacter("Tolga");
+				tolga.setAnswer("Hello, how can I help?");
+				tolga.setAnswer("You are annoying me!");
+				
+				otto_von = new NonPlayerCharacter("Otto_Von");
+				otto_von.setAnswer("Hello, I am Otto Von.");
+				otto_von.setAnswer("What are you looking for?");
+				
+				carla = new NonPlayerCharacter("Carla");
+				carla.setAnswer("Hiii!");
+				carla.setAnswer("Hiiiiiiiii!");
+				
+				herbert = new NonPlayerCharacter("Herbert");
+				herbert.setAnswer("Hmmmm, I can't help you with that...");
+				herbert.setAnswer("You are looking for a key?");
+				
+				minori = new NonPlayerCharacter("Minori");
+				minori.setAnswer("Hi, am I in your way?");
+				minori.setAnswer("Why are you so stressed out?");
+				
+				hadil = new NonPlayerCharacter("Hadil");
+				hadil.setAnswer("Good day, how can I help you?");
+				hadil.setAnswer("Want me to show you around?");
+				
+				// initialise room exits, items and npcs
+				outside.setExit("South", mainHall);
+				outside.setNPC(hadil);
+				
+				mainHall.setExit("North", outside);
+				mainHall.setExit("East", secretary);
+				mainHall.setItem(new Item("Wastepaper_Basket", 5000,
+				"To throw stuff away.", "blue"));
+				mainHall.setNPC(herbert);
+				
+				secretary.setExit("East", outside);
+				secretary.setExit("South", office);
+				secretary.setExit("West", mainHall);
+				secretary.setItem(new Item("Key", 5,
+				"To open a mysterious door.", "silver"));
+				secretary.setItem(new Item("Computer", 500,
+				"Holds a lot of information and potential power!", "black"));
+				secretary.setItem(new Item("Coffee_Cup", 50,
+				"An empty coffee cup.", "yellow"));
+				secretary.setNPC(tolga);
+				
+				lab.setExit("South", freezer);
+				lab.setExit("East", outside);
+				lab.setItem(new Item("Pipettes", 30,
+				"Little plastic thingies.", "transparent"));
+				lab.setItem(new Item("Goggles", 70,
+				"To have better sight.", "green"));
+				lab.setItem(new Item("White coat", 250,
+				"A coat to look smart.", "white?"));       
+				lab.setItem(new Item("FFP2_mask", 10,
+				"A mask to be safer. Wear over mouth and nose!", "black"));
+				lab.setNPC(carla);
+				
+				office.setExit("East", freezer);
+				office.setExit("West", lab);
+				office.setExit("North", secretary);
+				office.setItem(new Item("Basket", 100, "Whatever.", "orange"));
+				office.setNPC(minori);
+				office.setNPC(otto_von);
+				
+				freezer.setExit("North", lab);
+				freezer.setItem(new Item("Vaccine", 10,
+				"To save the economy and capitalism.", "shiny brown"));
+				
+				this.currentRoom = outside;  // start game outside
+				this.previousRoom = null;
+			}
+			
+			/*
+			 *  Main play routine.  Loops until end of play.
+			 */
+			Game.prototype.play = function() {
+				this.createRooms();
+				this.printWelcome();
+				
+				// Enter the main command loop.  Here we repeatedly read commands and
+				// execute them until the game is over.
+				
+				//var finished = false;
+				myGame = this;
+				
+				inputBar.addEventListener("keyup", checkForInput);
+				function checkForInput(event) {
+					if (event.keyCode === 13) {
+						event.preventDefault();
+						var command = myGame.parser.getCommand();
+						if (myGame.processCommand(command)) {
+							myGame.printGoodbye();
+							inputBar.removeEventListener("keyup", checkForInput);
+						};
+					}
+				}
+			}
+			
+			/*
+			 * Print out the closing message for the player.
+			 */
+			Game.prototype.printGoodbye = function() {
+				println("Thank you for playing.  Good bye.");
+				println("");
+			}
+			
+			/*
+			 * Print out the opening message for the player.
+			 */
+			Game.prototype.printWelcome = function() {
+				println("");
+				println("Hello and welcome to Stop the Virus");
+				println("Stop the Virus is a new, incredibly boring adventure game.");
+				println("Type 'help' if you need help.");
+				println("");
+				println(this.currentRoom.getLongDescription());
+			}
+			
+			/*
+			 * Given a command, process (that is: execute) the command.
+			 * @param command The command to be processed.
+			 * @return true If the command ends the game, false otherwise.
+			 */
+			Game.prototype.processCommand = function(command) {
+				var wantToQuit = false;
+				
+				if(command.isUnknown()) {
+					println("I don't know what you mean...");
+					return false;
+				}
+				
+				var commandWord = command.getCommandWord();
+				
+				switch(commandWord){
+					case "help":
+						this.printHelp();
+						break;
+					case "go":
+						this.goRoom(command);
+						break;
+					case "look":
+						this.look();
+						break;
+					case "ask":
+						this.ask(command);
+						break;
+					case "take":
+						this.take(command);
+						break;
+					case "drop":
+						this.drop(command);
+						break;
+					case "items":
+						this.items();
+						break;
+					case "back":
+						this.back(command);
+						break;
+					case "lock":
+						this.lock();
+						break;
+					case "unlock":
+						this.unlock();
+						break;
+					case "quit":
+						wantToQuit = this.quit(command);
+						break;
+				}
+				return wantToQuit;
+			}
+			
+			// implementations of user commands:
+			
+			/*
+			 * Print out some help information.
+			 * Here we print some stupid, cryptic message and a list of the 
+			 * command words.
+			 */
+			Game.prototype.printHelp = function() {
+				println("");
+				println("You are lost. You are alone. You are looking for the vaccine");
+				println("that will save you from the killer virus.");
+				println("");
+				println("Your command words are: ");
+				this.parser.showAllCommands();
+			}
+			
+			/*
+			 * Try to go in one direction. If there is an exit, enter
+			 * the new room, otherwise print an error message.
+			 */
+			Game.prototype.goRoom = function(command) {
+				if(!command.hasSpecifyingWord()) {
+					// if there is no second word, we don't know where to go...
+					println("Go where?");
+					println("");
+					return;
+				}
+				
+				var direction = command.getSpecifyingWord();
+				
+				// Try to leave current room.
+				var nextRoom = this.currentRoom.getExit(direction);
+				if (nextRoom == null) {
+					println("There is no door!");
+					println("");
+				}
+				else {
+					this.setNewRoom(nextRoom);
+				}
+			}
+			
+			/*
+			 * Going back means that we have to remember where we came from. 
+			 * We are only remembering one previous step.
+			 */
+			Game.prototype.back = function(command) {
+				if (command.hasSpecifyingWord()) {
+					println("Back where?");
+					println("");
+					return;
+				}
+				if (this.previousRoom == null){
+					println("There is no room you can go back to.");
+					println("");
+				}
+				else {
+					this.setNewRoom(this.previousRoom);
+				}
+			}
+			
+			/*
+			 * Change the current room to the new one.
+			 */
+			Game.prototype.setNewRoom = function(newRoom) {
+				this.previousRoom =  this.currentRoom;
+				this.currentRoom = newRoom;
+				println(this.currentRoom.getLongDescription());
+			}
+			
+			/*
+			 * Ask an NPC for help.
+			 */
+			Game.prototype.ask = function(command) {
+				if(!command.hasSpecifyingWord()) {
+					// if there is no second word, we don't know what to take...
+					println("Ask who?");
+					println("");
+					return;
+				}
+				
+				var npcToAsk = command.getSpecifyingWord();
+				var npc = this.currentRoom.getNPC(npcToAsk);
+				
+				if(npc != null){
+					println(this.currentRoom.ask(npc));
+					println("");
+				}
+				else{
+					println("No person with this name is in the room");
+					println("");
+				}
+			}
+			
+			/*
+			 * Take an item from the room and store it in the players inventory.
+			 * @param command
+			 */
+			Game.prototype.take = function(command) {
+				if(!command.hasSpecifyingWord()) {
+					// if there is no second word, we don't know what to take...
+					println("Take what?");
+					println("");
+					return;
+				}
+				
+				var itemToTake = command.getSpecifyingWord();
+				var item = this.currentRoom.getItem(itemToTake);
+				
+				if(item != null){
+					if(this.player.canTake(item)){
+						this.player.take(this.currentRoom.removeItem(itemToTake));
+						println("Item " + itemToTake + " taken.");
+						println("");
+					}
+					else{
+						println("Weight limit exceeded."
+						+ " You cant take this item");
+						println("");
+					}
+				}
+				else{
+					println("No item like this in here");
+					println("");
+				}
+			}
+			
+			/*
+			 * Drops items of the players inventory into the current room.
+			 * @param Command
+			 */
+			Game.prototype.drop = function(command) {
+				if(!command.hasSpecifyingWord()) {
+					// if there is no second word, we don't know what to take...
+					println("Drop what?");
+					println("");
+					return;
+				}
+				
+				var itemToDrop = command.getSpecifyingWord();
+				var item = this.player.getItem(itemToDrop);
+				
+				if(itemToDrop == "all"){
+					var droppedItems = this.player.dropAll();
+					if(droppedItems.length != 0){
+						for(var droppedItem of droppedItems){
+							this.currentRoom.setItem(droppedItem);
+						}
+						println("All items dropped.");
+						println("");
+					}
+					else{
+						println("Your inventory is already empty");
+						println("");
+					}
+				}
+				else{
+					if(this.player.getItem(itemToDrop) != null){
+						this.player.drop(item);
+						this.currentRoom.setItem(item);
+						println("Item dropped.");
+						println("");
+					}
+					else{
+						println("Item not in inventory");
+						println("");
+					}
+				}
+			}
+			
+			/*
+			 * Get a list of all items in a players inventory.
+			 */
+			Game.prototype.items = function() {
+				println("Your Inventory: ");
+				println(this.player.getItemList());
+			}
+			
+			/*
+			 * Look just looks at the room for now
+			 */
+			Game.prototype.look = function() {
+				println(this.currentRoom.getLongDescription());
+			}
+			
+			/*
+			 * Lock will eventually permit you to lock the door if you have a key.
+			 */
+			Game.prototype.lock = function() {
+				println("You try to lock the door.");
+				println("");
+			}
+			
+			/*
+			 * Look just looks at the room for now
+			 */
+			Game.prototype.unlock = function() {
+				println("You try to unlock the door.");
+				println("");
+			}
+			
+			/* 
+			 * "Quit" was entered. Check the rest of the command to see
+			 * whether we really quit the game.
+			 * @return true, if this command quits the game, false otherwise.
+			 */
+			Game.prototype.quit = function(command) {
+				if(command.hasSpecifyingWord()) {
+					println("Quit what?");
+					println("");
+					return false;
+				}
+				else {
+					return true;  // signal that we want to quit
+				}
+			}
+			
+			/*
+			 * This class is part of the "Stop the Virus" application. 
+			 * "Stop the Virus" is a very simple, text based adventure game.  
+			 *
+			 * A "Room" represents one location in the scenery of the game.  It is 
+			 * connected to other rooms via exits.  For each existing exit, the room 
+			 * stores a reference to the neighboring room. It also contains items and NPCs.
+			 * 
+			 * @author  Michael Kölling and David J. Barnes, D. Weber-Wulff
+			 * @author  Debora Weber-Wulff adapted it to Corona
+			 * @version 08-02-2021
+			 */
+			function Room(description) {
+				/*
+				 * Create a room described by "description". Initially, it has
+				 * no exits. "description" is something like "a kitchen" or
+				 * "an open court yard".
+				 * @param description The room's description.
+				 */
+				this.description = description;
+				this.exits = new Map();
+				this.items = [];
+				this.nonPlayerCharacters = [];
+			}
+			
+			/*
+			 * Define an exit from this room.  Every direction either leads
+			 * to another room or is null (no exit there).
+			 * @param direction The direction of the exit.
+			 * @param neighbor  The room to which the exit leads.
+			 */
+			Room.prototype.setExit = function(direction, neighbor) {
+				this.exits.set(direction, neighbor);
+			}
+			
+			/*
+			 * @return The description of the room.
+			 */
+			Room.prototype.getShortDescription = function() {
+				return description;
+			}
+			
+			/*
+			 * Return the room that is reached if we go from this room in direction
+			 * "direction". If there is no room in that direction, return null.
+			 * @param direction The exit's direction.
+			 * @return The room in the given direction.
+			 */
+			Room.prototype.getExit = function(direction) {
+				return this.exits.get(direction);
+			}
+			
+			/*
+			 * Return a string describing the room's exits, for example
+			 * "Exits: north west".
+			 * @return Details of the room's exits.
+			 */
+			Room.prototype.getExitString = function() {
+				var returnString = "EXITS:\n";
+				var keys = this.exits.keys();
+				for(var exit of keys) {
+					returnString += "- " + exit + "\n";
+				}
+				return returnString;
+			}
+			
+			/*
+			 * A list of item(s) in the room.
+			 */
+			Room.prototype.roomItems = function() {
+				var s = "ITEMS: \n";
+				for(var item of this.items) {
+					s = s + "- " + item.getLongDescription() + "\n";
+				}        
+				return s;
+			}
+			
+			/*
+			 * A list of NPCs in the room.
+			 */
+			Room.prototype.roomNPCs = function(){
+				var s = "PERSONS:\n";
+				for(var npc of this.nonPlayerCharacters){
+					s = s + "- " + npc.getName() + "\n";
+				}
+				return s;
+			}
+			
+			/*
+			 * Return a description of the room in the form:
+			 *     You are in the kitchen.
+			 *     Exits: north west
+			 * @return A long description of this room
+			 */
+			Room.prototype.getLongDescription = function() {
+				var s = "\n" + "You are " + description + ".\n" + this.getExitString();
+				if (this.items != null) {
+					s = s + this.roomItems();
+				}
+				if(this.nonPlayerCharacters != null){
+					s = s + this.roomNPCs();
+				}
+				return s;
+			}
+			
+			/*
+			 * Set an Item in the Room
+			 */
+			Room.prototype.setItem = function(it) {
+				if(it != null){
+					this.items.push(it);
+				}
+			}
+			
+			/*
+			 * Get the Item from the room. This means looking to see if there was
+			 * such an item. 
+			 * 
+			 * @return The item that was in the room, if any
+			 */
+			Room.prototype.getItem = function(name) {
+				for (var item of this.items) {
+					if (item.getName() == name){
+						return item;
+					}
+				}
+				// there was none by this name, so return nothing
+				return null;
+			}
+			
+			/*
+			 * Remove the item from a room
+			 * 
+			 * @return The item that is being removed is returned, just in case it is needed
+			 */
+			Room.prototype.removeItem = function(name) {
+				 var removedItem = null;
+				 for (var item of this.items) {
+					 if (item.getName() == name){
+						 removedItem = item;
+					 }
+				 }
+				 var pos = this.items.indexOf(removedItem)
+				 this.items.splice(pos, 1);
+				 return removedItem;
+			}
+			
+			/*
+			 * Sets an NPC into this room.
+			 * @param npc
+			 */
+			Room.prototype.setNPC = function(npc) {
+				this.nonPlayerCharacters.push(npc);
+			}
+			
+			/*
+			 * Get the NPC from the room.
+			 * @param name
+			 * @return The NPC that was in the room, if any.
+			 */
+			Room.prototype.getNPC = function(name) {
+				for (var npc of this.nonPlayerCharacters) {
+					if (npc.getName() == name){
+						return npc;
+					}
+				}
+				return null;
+			}
+			
+			/*
+			 * Ask the NPCs something.
+			 */
+			Room.prototype.ask = function(npc) {
+				var index = this.nonPlayerCharacters.indexOf(npc);
+				return this.nonPlayerCharacters[index].getAnswer();
+			}
+			
+			/*
+			 * These are items that can be found in a Room in the "Stop the Virus" game
+			 *
+			 * @author Debora Weber-Wulff
+			 * @author Jonas Erik Blome
+			 * @version 08-02-2021
+			 */
+			function Item(name, weight, description, color) {
+				this.description = description;
+				this.name = name;
+				this.weight = weight;
+				this.color = color;
+			}
+			
+			/*
+			 * A getter for the name
+			 */
+			Item.prototype.getName = function() {
+				return name;
+			}
+			
+			/*
+			 * A getter for the weight
+			 */
+			Item.prototype.getWeight = function() {
+				return weight;
+			}
+			
+			/*
+			 * A getter for the color
+			 */
+			Item.prototype.getColor = function() {
+				return color;
+			}
+			
+			/*
+			 * A getter for the description
+			 */
+			Item.prototype.getDescription = function() {
+				return description;
+			}
+			
+			/*
+			 * A longer description of the item with all details
+			 */
+			Item.prototype.getLongDescription = function() {
+				return name + " (" + weight + "): "
+							+ description + " Color: " + color;
+			}
+			
+			/*
+			 * This class is part of the "Stop the Virus" application. 
+			 * "Stop the Virus" is a very simple, text based adventure game.  Users 
+			 * can walk around some scenery and interact with items or NPCs.
+			 * 
+			 * This class represents the player in this game.
+			 * It can hold items in an inventory or drop them.
+			 * The player can interact with NPCs and rooms.
+			 *
+			 * @author Jonas Erik Blome
+			 * @version 08-02-2021
+			 */
+			function Player(weightLimit) {
+				// instance variables - replace the example below with your own
+				this.weightLimit = weightLimit;
+				this.inventory = [];
+				this.inventoryWeight = 0;
+			}
+			
+			/*
+			 * Add an item to the inventory.
+			 * @param Item
+			 */
+			Player.prototype.addItem = function(item) {
+				inventory.push(item);
+			}
+			
+			/*
+			 * Get an item from the inventory.
+			 * @param item name
+			 */
+			Player.prototype.getItem = function(itemName) {
+				for(var item of this.inventory){
+					if(item.getName() == itemName){
+						return item;
+					}
+				}
+				return null;
+			}
+			
+			/*
+			 * Get a list of all items, their weight and the total weight.
+			 */
+			Player.prototype.getItemList = function() {
+				var itemList = "";
+				for(var item of this.inventory){
+					itemList += "- " + item.getLongDescription() + "\n";
+				}
+				itemList += "Weight carried: " + this.inventoryWeight;
+				return itemList;
+			}
+			
+			/*
+			 * Checks if item can be taken and if so adds it to inventory.
+			 * @param Item
+			 * @return boolean
+			 */
+			Player.prototype.take = function(item) {
+				if (canTake(item)){
+					this.inventory.push(item);
+					this.inventoryWeight += item.getWeight();
+					return true;
+				}
+				else {
+					return false;
+				}
+			}
+			
+			/*
+			 * Checks if item can be taken.
+			 * @param Item
+			 * @return boolean
+			 */
+			Player.prototype.canTake = function(item) {
+				if (this.inventoryWeight + item.getWeight() <= this.weightLimit){
+					return true;
+				}
+				else {
+					return false;
+				}
+			}
+			
+			/*
+			 * Removes an item from the inventory.
+			 * @param item
+			 */
+			Player.prototype.drop = function(item) {
+				this.inventoryWeight -= item.getWeight();
+				var pos = this.inventory.indexOf(item);
+				this.inventory.splice(pos);
+				return item;
+			}
+			
+			/*
+			 * Removes all items in the inventory.
+			 */
+			Player.prototype.dropAll = function() {
+				var droppedItems = [];
+				for(var item of this.inventory){
+					droppedItems.push(item);
+				}
+				for(var item of droppedItems){
+					this.inventoryWeight -= item.getWeight();
+					var pos = this.inventory.indexOf(item);
+					this.inventory.splice(pos);
+				}
+				return droppedItems;
+			}
+			
+			/*
+			 * This class is part of the "Stop the Virus" application. 
+			 * "Stop the Virus" is a very simple, text based adventure game.  Users 
+			 * can walk around some scenery and interact with items or NPCs.
+			 * 
+			 * This class represents an NPC in this game. It can be located in a room.
+			 * The player can interact with NPCs.
+			 * 
+			 * @author Jonas Erik Blome
+			 * @version 08-02-2021
+			 */
+			function NonPlayerCharacter(name) {
+				this.name = name;
+				this.answers = [];
+			}
+			
+			/*
+			 * Get the name.
+			 */
+			NonPlayerCharacter.prototype.getName = function() {
+				return name;
+			}
+			
+			/*
+			 * Sets an answer to this NPCs repertoire.
+			 * @param  answer
+			 */
+			NonPlayerCharacter.prototype.setAnswer = function(answer) {
+				this.answers.push(answer);
+			}
+			
+			/*
+			 * Get a random answer.
+			 */
+			NonPlayerCharacter.prototype.getAnswer = function() {
+				function randomGenerator(min, max) {
+					return Math.floor(Math.random() * (max - min) + min);
+				}
+				
+				var answerIndex = randomGenerator(0, this.answers.length);
+				
+				if (this.answers.length != 0){
+					var randomAnswer = this.answers[answerIndex];
+					return randomAnswer;
+				}
+				else{
+					return "This person has nothing to say to you.";
+				}
+			}
+			
+			/*
+			 * CommandWords class: This class holds an enumeration of all command words known to the game.
+			 * It is used to recognise commands as they are typed in.
+			 */
+			
+			function CommandWords() {
+				this.validCommands = [
+					'go', 'look', 'lock', 'unlock', 'items',
+					'back', 'take', 'drop', 'quit', 'help', 'ask'
+				];
+			}
+			
+			/*
+			 * Check whether a given String is a valid command word. 
+			 * @return true if a given string is a valid command,
+			 * false if it isn't.
+			 */
+			CommandWords.prototype.isCommand = function(aString) {
+				for(var i = 0; i < this.validCommands.length; i++) {
+					if(this.validCommands[i] == (aString)){
+						return true;
+					}
+				}
+				//if we get here, the string was not found in the commands
+				return false;
+			};
+			
+			/*
+			 * Print all valid commands to System.out.
+			 */
+			CommandWords.prototype.showAll = function() {
+				for(var i of this.validCommands){
+					print(i + " ");
+				}
+				println("");
+			};
+			
+			/*
+			 * Command class: This class holds information about a command that was issued by the user.
+			 * A command currently consists of two strings: a command word and a second
+			 * word (for example, if the command was "take map", then the two strings
+			 * obviously are "take" and "map").
+			 *
+			 * The way this is used is: Commands are already checked for being valid
+			 * command words. If the user entered an invalid command (a word that is not
+			 * known) then the command word is <null>.
+			 *
+			 * If the command had only one word, then the second word is <null>.
+			 */
+			
+			function Command(firstWord, secondWord) {
+				/*
+				 * Create a command object. First and second word must be supplied, but
+				 * either one (or both) can be null.
+				 * @param firstWord The first word of the command. Null if the command
+				 *                  was not recognised.
+				 * @param secondWord The second word of the command.
+				 */
+				this.commandWord = firstWord;
+				this.specifyingWord = secondWord;
+			}
+			
+			/*
+			 * Return the command word (the first word) of this command. If the
+			 * command was not understood, the result is null.
+			 * @return The command word.
+			 */
+			Command.prototype.getCommandWord = function() {
+				return this.commandWord;
+			};
+			
+			/*
+			 * @return The second word of this command. Returns null if there was no
+			 * second word.
+			 */
+			Command.prototype.getSpecifyingWord = function() {
+				return this.specifyingWord;
+			};
+			
+			/*
+			 * @return true if this command was not understood.
+			 */
+			Command.prototype.isUnknown = function() {
+				return(this.commandWord == null);
+			};
+			
+			/*
+			 * @return true if the command has a second word.
+			 */
+			Command.prototype.hasSpecifyingWord = function() {
+				return(this.specifyingWord != null);
+			};
+			
+			/*
+			 * Parser class: This parser reads user input and tries to interpret it as an "Adventure"
+			 * command. Every time it is called it reads a line from the terminal and
+			 * tries to interpret the line as a two word command. It returns the command
+			 * as an object of class Command.
+			 *
+			 * The parser has a set of known command words. It checks user input against
+			 * the known commands, and if the input is not one of the known commands, it
+			 * returns a command object that is marked as an unknown command.
+			 */
+			
+			function Parser() {
+				/*
+				 * Create a parser to read from the terminal window.
+				 */
+				this.commands = new CommandWords();
+			}
+			
+			/*
+			 * @return The next command from the user.
+			 */
+			Parser.prototype.getCommand = function() {
+				var inputLine = inputBar.value;
+				inputBar.value = "";
+				var word1 = null;
+				var word2 = null;
+				
+				println("> " + inputLine);
+				println("");
+				
+				var inputWords = inputLine.split(' ');
+				word1 = inputWords[0];
+				word2 = inputWords[1];
+				
+				if(this.commands.isCommand(word1)) {
+					if (word2 != undefined) {
+						return new Command(word1, word2);
+					}
+					else {
+						return new Command(word1, null);
+					}
+				}
+				else {
+					return new Command(null, null);
+				}
+			};
+			
+			/*
+			 * Print out a list of valid command words.
+			 */
+			Parser.prototype.showAllCommands = function() {
+				this.commands.showAll();
+			};
+			
+			game = new Game();
+			game.play();
+		</script>
+	</body>
+</html>
